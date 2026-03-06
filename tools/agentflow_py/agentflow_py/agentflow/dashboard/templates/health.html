@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentFlow v2 — 健康检查</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; background:#0f1117; color:#e1e4e8; min-height:100vh; }
+        .header { background:linear-gradient(135deg,#1a1f2e 0%,#252b3b 100%); padding:20px 32px; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; align-items:center; }
+        .header h1 { font-size:22px; font-weight:600; color:#58a6ff; }
+        .header h1 span { color:#8b949e; font-weight:400; font-size:14px; margin-left:12px; }
+        .header .time { color:#8b949e; font-size:13px; }
+        .container { max-width:1000px; margin:0 auto; padding:24px; }
+        .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:20px; margin-bottom:16px; }
+        .nav { display:flex; gap:12px; }
+        .nav a { color:#58a6ff; text-decoration:none; font-size:14px; padding:6px 14px; border-radius:6px; border:1px solid #30363d; }
+        .nav a:hover { background:#1f2937; border-color:#58a6ff; }
+        .nav a.active { background:#1f2937; border-color:#58a6ff; }
+        table { width:100%; border-collapse:collapse; }
+        th { text-align:left; padding:12px 14px; font-size:12px; color:#8b949e; text-transform:uppercase; letter-spacing:0.5px; border-bottom:2px solid #21262d; }
+        td { padding:12px 14px; font-size:14px; border-bottom:1px solid #21262d; }
+        .status { display:inline-flex; align-items:center; gap:6px; padding:4px 12px; border-radius:12px; font-size:13px; font-weight:600; }
+        .status-healthy { background:#0d321e; color:#3fb950; }
+        .status-warning { background:#2d2200; color:#d29922; }
+        .status-error { background:#3d0c0c; color:#f85149; }
+        .status-degraded { background:#2d1800; color:#db6d28; }
+        .detail { color:#8b949e; font-size:13px; max-width:500px; }
+        .refresh-btn { background:#21262d; border:1px solid #30363d; color:#58a6ff; padding:6px 16px; border-radius:6px; cursor:pointer; font-size:13px; }
+        .refresh-btn:hover { background:#30363d; }
+        .section-title { font-size:16px; font-weight:600; color:#c9d1d9; margin-bottom:16px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>🏥 健康检查 <span>AgentFlow v2</span></h1>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+            <nav class="nav">
+                <a href="/">看板</a>
+                <a href="/health" class="active">健康</a>
+            </nav>
+            <button class="refresh-btn" onclick="location.reload()">🔄 刷新</button>
+            <span class="time">{{ server_time }}</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="section-title">系统组件健康状态</div>
+        <div class="card">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:200px;">检查项</th>
+                        <th style="width:120px;">状态</th>
+                        <th>详情</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for check in checks %}
+                <tr>
+                    <td><strong>{{ check.name }}</strong></td>
+                    <td>
+                        {% if check.status == "healthy" %}
+                        <span class="status status-healthy">✓ 健康</span>
+                        {% elif check.status == "warning" %}
+                        <span class="status status-warning">⚠ 警告</span>
+                        {% elif check.status == "error" %}
+                        <span class="status status-error">✗ 异常</span>
+                        {% elif check.status == "degraded" %}
+                        <span class="status status-degraded">↓ 退化</span>
+                        {% else %}
+                        <span class="status" style="background:#21262d;color:#8b949e;">{{ check.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="detail">{{ check.detail }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div style="margin-top:24px;text-align:center;color:#484f58;font-size:12px;">
+            自动刷新间隔: 15 秒 | API 端点: <code style="color:#58a6ff;">/api/health</code>
+        </div>
+    </div>
+
+    <script>
+        setTimeout(()=>location.reload(), 15000);
+    </script>
+</body>
+</html>

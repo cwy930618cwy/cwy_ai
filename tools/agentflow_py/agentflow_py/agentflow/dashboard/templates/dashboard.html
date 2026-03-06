@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentFlow v2 — 控制台</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <h1>⚡ AgentFlow <span>v2 Self-Improving Engine</span></h1>
+        </div>
+        <div class="header-right">
+            <nav class="nav">
+                <button class="nav-btn active" data-view="dashboard" onclick="switchView('dashboard',this)">📊 看板</button>
+                <span class="nav-divider"></span>
+<button class="nav-btn" data-view="projects" onclick="switchView('projects',this)">🗂️ 流程 <span class="approval-badge" id="approvalBadge" style="display:none;"></span></button>
+                <button class="nav-btn" data-view="tasks" onclick="switchView('tasks',this)">📋 任务队列</button>
+                <span class="nav-divider"></span>
+                <button class="nav-btn" data-view="fixexp" onclick="switchView('fixexp',this)">📚 经验</button>
+                <button class="nav-btn" data-view="skills" onclick="switchView('skills',this)">🧬 Skills</button>
+                <button class="nav-btn" data-view="complaints" onclick="switchView('complaints',this)">😤 吐槽墙</button>
+                <button class="nav-btn" data-view="recovery" onclick="switchView('recovery',this)">🔄 恢复链路</button>
+            </nav>
+            <div class="live-clock"><span class="live-dot"></span><span id="liveClock">--:--:--</span></div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- ========== Dashboard View ========== -->
+        <div class="view active" id="view-dashboard">
+            <!-- Overview Cards -->
+            <div class="grid" id="overviewCards">
+                <div class="card card-clickable" onclick="openModulePanel('goals')">
+                    <div class="card-title"><span class="icon">🎯</span> 活跃目标</div>
+                    <div class="metric" id="card-active-goals"><div class="skeleton skeleton-metric"></div></div>
+                    <div class="metric-sub" id="card-goals-sub">加载中...</div>
+                </div>
+                <div class="card card-clickable" onclick="openTaskModal()">
+                    <div class="card-title"><span class="icon">📋</span> 任务队列</div>
+                    <div class="metric" id="card-total-tasks"><div class="skeleton skeleton-metric"></div></div>
+                    <div class="metric-sub" id="card-task-sub">加载中...</div>
+                </div>
+                <div class="card card-clickable" onclick="openModulePanel('completed')">
+                    <div class="card-title"><span class="icon">✅</span> 已完成</div>
+                    <div class="metric green" id="card-completed-tasks"><div class="skeleton skeleton-metric"></div></div>
+                    <div class="metric-sub" id="card-failed-sub">加载中...</div>
+                </div>
+                <div class="card card-clickable" onclick="openModulePanel('skills')">
+                    <div class="card-title"><span class="icon">🧬</span> Skill 总数</div>
+                    <div class="metric" id="card-skill-count"><div class="skeleton skeleton-metric"></div></div>
+                    <div class="metric-sub" id="card-evo-sub">加载中...</div>
+                </div>
+            </div>
+
+            <!-- Task Status Distribution -->
+            <div class="section">
+                <div class="section-title">📊 任务状态分布</div>
+                <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));">
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;"><span class="icon">⏳</span> 待认领</div>
+                        <div class="metric yellow" id="stat-pending">-</div>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;"><span class="icon">🔄</span> 运行中</div>
+                        <div class="metric" style="color:var(--accent);" id="stat-running">-</div>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;"><span class="icon">✅</span> 已完成</div>
+                        <div class="metric green" id="stat-completed">-</div>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;"><span class="icon">❌</span> 失败</div>
+                        <div class="metric red" id="stat-failed">-</div>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;"><span class="icon">🚫</span> 阻塞</div>
+                        <div class="metric" style="color:var(--text-muted);" id="stat-blocked">-</div>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;"><span class="icon">⚡</span> 中断</div>
+                        <div class="metric" style="color:var(--orange);" id="stat-interrupted">-</div>
+                    </div>
+                    <div class="card" style="text-align:center;">
+                        <div class="card-title" style="justify-content:center;"><span class="icon">🔍</span> 审查中</div>
+                        <div class="metric" style="color:var(--purple);" id="stat-review">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experience & Evolution -->
+            <div class="section">
+                <div class="section-title">🧪 经验与进化</div>
+                <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+                    <div class="card">
+                        <div class="card-title"><span class="icon">👍</span> 正向经验</div>
+                        <div class="metric green" id="stat-pos-exp">-</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><span class="icon">👎</span> 负向经验</div>
+                        <div class="metric red" id="stat-neg-exp">-</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><span class="icon">🔄</span> 进化次数</div>
+                        <div class="metric" id="stat-evo-count">-</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><span class="icon">🏆</span> 最佳分数</div>
+                        <div class="metric" style="color:var(--yellow);" id="stat-best-score">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Status -->
+            <div class="section">
+                <div class="section-title">🏥 系统状态</div>
+                <div class="card">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width:200px;">检查项</th>
+                                <th style="width:120px;">状态</th>
+                                <th>详情</th>
+                            </tr>
+                        </thead>
+                        <tbody id="healthCheckBody">
+                            <tr><td colspan="3" style="text-align:center;color:var(--text-dimmed);">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+
+    </div>
+
+    <!-- Task Modal -->
+    <div class="task-modal-overlay" id="taskModal">
+        <div class="task-modal">
+            <div class="task-modal-header">
+                <h2>📋 任务列表 <span class="task-count-info" id="taskCountInfo"></span></h2>
+                <button class="task-modal-close" onclick="closeTaskModal()">✕</button>
+            </div>
+            <div class="goal-filter-row" id="goalFilters">
+                <span class="goal-filter-label">🎯 目标组：</span>
+                <button class="filter-btn active" data-goal-status="all" onclick="filterGoals('all',this)">全部</button>
+                <button class="filter-btn" data-goal-status="active" onclick="filterGoals('active',this)">▶ 进行中</button>
+                <button class="filter-btn" data-goal-status="pending" onclick="filterGoals('pending',this)">⏸ 暂停</button>
+                <button class="filter-btn" data-goal-status="completed" onclick="filterGoals('completed',this)">✅ 已完成</button>
+                <button class="filter-btn" data-goal-status="cancelled" onclick="filterGoals('cancelled',this)">✕ 已取消</button>
+            </div>
+            <div class="task-modal-filters" id="taskFilters">
+                <span class="goal-filter-label">📋 任务：</span>
+                <button class="filter-btn active" data-status="all" onclick="filterTasks('all',this)">全部</button>
+                <button class="filter-btn" data-status="pending" onclick="filterTasks('pending',this)">⏳ 待认领</button>
+                <button class="filter-btn" data-status="running" onclick="filterTasks('running',this)">🔄 运行中</button>
+                <button class="filter-btn" data-status="completed" onclick="filterTasks('completed',this)">✅ 已完成</button>
+                <button class="filter-btn" data-status="failed" onclick="filterTasks('failed',this)">❌ 失败</button>
+                <button class="filter-btn" data-status="blocked" onclick="filterTasks('blocked',this)">🚫 阻塞</button>
+                <button class="filter-btn" data-status="interrupted" onclick="filterTasks('interrupted',this)">⚡ 中断</button>
+                <button class="filter-btn" data-status="review" onclick="filterTasks('review',this)">🔍 审查中</button>
+            </div>
+            <div class="task-modal-body" id="taskModalBody">
+                <div class="task-empty">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Module Panels (独立看板) -->
+    <div class="module-panel-overlay" id="modulePanelOverlay">
+        <div class="module-panel">
+            <div class="module-panel-header">
+                <h2 id="modulePanelTitle">—</h2>
+                <button class="module-close" onclick="closeModulePanel()">✕</button>
+            </div>
+            <div class="module-panel-body" id="modulePanelBody">
+                <div style="text-align:center;color:var(--text-dimmed);padding:40px;">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Edit Modal -->
+    <div class="task-edit-overlay" id="taskEditOverlay">
+        <div class="task-edit-modal">
+            <div class="task-edit-header">
+                <h3>✏️ 编辑任务 <span class="task-edit-id" id="taskEditId"></span></h3>
+                <button class="task-modal-close" onclick="closeTaskEdit()">✕</button>
+            </div>
+            <div class="task-edit-body">
+                <input type="hidden" id="taskEditTaskId" value="">
+                <div class="form-group">
+                    <label class="form-label">任务标题</label>
+                    <input class="form-input" id="taskEditTitle" placeholder="任务标题">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">任务描述</label>
+                    <textarea class="form-textarea" id="taskEditDesc" placeholder="任务的详细描述" style="min-height:100px;"></textarea>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">优先级 <span class="hint">1-10，数值越大越优先</span></label>
+                        <input class="form-input" id="taskEditPriority" type="number" min="1" max="10" placeholder="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">难易度 <span class="hint">1-3简单 4-6中等 7-9困难 10极难</span></label>
+                        <input class="form-input" id="taskEditDifficulty" type="number" min="1" max="10" placeholder="5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">技能类型</label>
+                        <select class="form-input" id="taskEditSkillType">
+                            <option value="">— 未指定 —</option>
+                            <option value="go_crud">go_crud</option>
+                            <option value="api_design">api_design</option>
+                            <option value="auth_security">auth_security</option>
+                            <option value="db_storage">db_storage</option>
+                            <option value="testing">testing</option>
+                            <option value="code_review">code_review</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">所属阶段</label>
+                        <input class="form-input" id="taskEditPhase" placeholder="如：design / implement / test">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">预估 Token</label>
+                        <input class="form-input" id="taskEditTokens" type="number" min="0" placeholder="2000">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">依赖任务</label>
+                    <div class="dep-tags-container" id="taskEditDepTags">
+                        <span class="dep-tag-empty">无依赖</span>
+                    </div>
+                    <div class="dep-select-row">
+                        <select class="form-input" id="taskEditDepSelect">
+                            <option value="">— 选择要添加的依赖任务 —</option>
+                        </select>
+                        <button class="btn-add-dep" type="button" onclick="addDepFromSelect()">+ 添加</button>
+                        <button class="btn-clear-deps" type="button" onclick="clearAllDeps()">清空</button>
+                    </div>
+                </div>
+                <!-- Review 信息展示区块 -->
+                <div class="form-group" id="taskEditReviewBlock" style="display:none;border-top:1px solid var(--border-light);padding-top:12px;margin-top:4px;">
+                    <label class="form-label">🔍 Review 信息</label>
+                    <div id="taskEditReviewInfo" style="font-size:12px;color:var(--text-muted);background:var(--bg-secondary,#1e1e2e);border-radius:6px;padding:10px 12px;line-height:1.8;"></div>
+                </div>
+            </div>
+            <div class="task-edit-footer">
+                <button class="btn-secondary" onclick="closeTaskEdit()">取消</button>
+                <button class="btn-primary" id="taskEditSubmit" onclick="submitTaskEdit()">保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Refresh Indicator -->
+    <div class="refresh-indicator">
+        <span class="dot" id="refreshDot"></span>
+        <span id="refreshTimer">15s</span>
+    </div>
+
+    <!-- Skill Form Modal -->
+    <div class="skill-form-overlay" id="skillFormOverlay">
+        <div class="skill-form">
+            <div class="skill-form-header">
+                <h3 id="skillFormTitle">🧬 新建 Skill</h3>
+                <button class="task-modal-close" onclick="closeSkillForm()">✕</button>
+            </div>
+            <div class="skill-form-body">
+                <input type="hidden" id="skillFormMode" value="create">
+                <input type="hidden" id="skillFormOrigName" value="">
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="form-group">
+                        <label class="form-label">名称 <span class="hint">蛇形命名（如 go_crud、react_ui）</span></label>
+                        <input class="form-input" id="skillName" placeholder="skill_name" pattern="[a-z][a-z0-9_]*">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">标签 <span class="hint">逗号分隔</span></label>
+                        <input class="form-input" id="skillTags" placeholder="go, crud, backend">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">描述</label>
+                    <input class="form-input" id="skillDesc" placeholder="简要描述此 Skill 的职责范围">
+                </div>
+
+                <div class="form-section-title">🧬 DNA 基因配置</div>
+
+                <div class="form-group">
+                    <label class="form-label">📏 执行规则 (Rules) <span class="hint">每行一条，Agent 必须遵守的核心规则</span></label>
+                    <textarea class="form-textarea" id="skillRules" placeholder="所有数据库操作必须使用事务&#10;必须对用户输入进行参数校验&#10;错误消息不暴露内部实现细节"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">🚫 反模式 (Anti-Patterns) <span class="hint">每行一条，常见错误和陷阱</span></label>
+                    <textarea class="form-textarea small" id="skillAntiPatterns" placeholder="不要在循环中执行数据库查询&#10;不要硬编码配置项&#10;避免使用 SELECT *"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">✅ 最佳实践 (Best Practices) <span class="hint">每行一条，推荐做法</span></label>
+                    <textarea class="form-textarea small" id="skillBestPractices" placeholder="使用批量操作代替逐条插入&#10;日志记录包含请求ID便于追踪&#10;API 返回统一的错误码格式"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">📝 检查清单 (Checklist) <span class="hint">每行一条，任务完成后需确认的事项</span></label>
+                    <textarea class="form-textarea small" id="skillChecklist" placeholder="是否编写了单元测试？&#10;是否处理了边界情况？&#10;是否添加了必要的注释？"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">📄 代码模板 (Template) <span class="hint">可选，代码生成模板</span></label>
+                    <textarea class="form-textarea small" id="skillTemplate" placeholder="// 可选的代码模板..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">💡 上下文提示 (Context Hints) <span class="hint">每行一条，提示 Agent 需要参考的信息</span></label>
+                    <textarea class="form-textarea small" id="skillContextHints" placeholder="需要参考项目的目录结构&#10;检查现有的错误处理规范"></textarea>
+                </div>
+            </div>
+            <div class="skill-form-footer">
+                <button class="btn-secondary" onclick="closeSkillForm()">取消</button>
+                <button class="btn-primary" id="skillFormSubmit" onclick="submitSkillForm()">创建 Skill</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Recovery Timeline View ========== -->
+    <div class="view" id="view-recovery">
+        <!-- 统计概览卡片 -->
+        <div class="grid" id="recoveryStats">
+            <div class="card">
+                <div class="card-title"><span class="icon">⚡</span> 中断次数</div>
+                <div class="metric yellow" id="recovery-interrupted-count">-</div>
+                <div class="metric-sub">任务被中断的总次数</div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span class="icon">🔄</span> 恢复成功</div>
+                <div class="metric green" id="recovery-recovered-count">-</div>
+                <div class="metric-sub">成功恢复的任务数</div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span class="icon">✅</span> 恢复后完成</div>
+                <div class="metric" id="recovery-completed-count">-</div>
+                <div class="metric-sub">恢复后最终完成的任务</div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span class="icon">⏱️</span> 平均恢复时间</div>
+                <div class="metric" id="recovery-avg-time">-</div>
+                <div class="metric-sub">从中断到恢复的平均耗时</div>
+            </div>
+        </div>
+
+        <!-- 筛选区域 -->
+        <div class="section">
+            <div class="section-title">
+                🔄 任务恢复链路
+                <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="recoveryTaskFilter" placeholder="按任务ID筛选..." style="background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:4px 8px;font-size:12px;width:180px;" onkeyup="if(event.key==='Enter')loadRecoveryData()">
+                    <input type="text" id="recoveryAgentFilter" placeholder="按Agent ID筛选..." style="background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:4px 8px;font-size:12px;width:180px;" onkeyup="if(event.key==='Enter')loadRecoveryData()">
+                    <button class="btn-secondary" onclick="loadRecoveryData()" style="padding:4px 12px;font-size:12px;">🔄 刷新</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 恢复链路时间线列表 -->
+        <div id="recoveryTimelines">
+            <div class="card" style="text-align:center;padding:40px;color:var(--text-muted);">
+                <div style="font-size:32px;margin-bottom:12px;">🔄</div>
+                <div>点击「刷新」加载恢复链路数据</div>
+                <div style="font-size:12px;margin-top:8px;color:var(--text-dimmed);">恢复链路记录任务从中断→恢复→完成的完整历程</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Fix Experience View ========== -->
+    <div class="view" id="view-fixexp">
+        <!-- 统计概览 -->
+        <div class="grid" id="fixexpStats">
+            <div class="card">
+                <div class="card-title"><span class="icon">📚</span> 经验总数</div>
+                <div class="metric" id="fixexp-total-exp">-</div>
+                <div class="metric-sub"><span id="fixexp-positive-exp">0</span> 正面 / <span id="fixexp-negative-exp">0</span> 负面</div>
+            </div>
+        </div>
+
+        <!-- 经验列表 -->
+        <div class="section">
+            <div class="section-title">
+                📖 经验库
+                <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                    <select id="fixExpTypeFilter" onchange="loadFixExperiences()" style="background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:4px 8px;font-size:12px;">
+                        <option value="positive">✅ 正面经验</option>
+                        <option value="negative">❌ 负面经验</option>
+                    </select>
+                    <input id="fixExpKeyword" type="text" placeholder="关键词搜索..." onkeyup="if(event.key==='Enter')loadFixExperiences()" style="background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:4px 8px;font-size:12px;width:160px;">
+                    <button class="btn-secondary" onclick="loadFixExperiences()" style="padding:4px 12px;font-size:12px;">🔍 搜索</button>
+                    <button class="btn-primary" onclick="openCreateExperience()" style="padding:4px 12px;font-size:12px;">➕ 新建</button>
+                    <button class="btn-primary" onclick="openAbsorbExperience()" style="padding:4px 12px;font-size:12px;background:var(--purple);">🔗 吸收经验</button>
+                    <button class="btn-primary" onclick="organizeExperiences()" style="padding:4px 12px;font-size:12px;background:var(--orange);">🧹 整理经验</button>
+                </div>
+            </div>
+            <div class="card">
+                <div id="fixExperiencesList" style="display:flex;flex-direction:column;gap:12px;">
+                    <div style="text-align:center;color:var(--text-muted);padding:24px;">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 经验编辑 Modal -->
+        <div id="expEditOverlay" class="task-edit-overlay" onclick="if(event.target===this)closeExpEditModal()">
+            <div class="task-edit-modal" style="max-width:640px;">
+                <div class="task-edit-header">
+                    <h3 id="expEditTitle">✏️ 编辑经验</h3>
+                    <button onclick="closeExpEditModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+                </div>
+                <div class="task-edit-body">
+                    <input type="hidden" id="expEditId">
+                    <input type="hidden" id="expEditType">
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">描述 (description)</label>
+                        <textarea id="expEditDesc" rows="3" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">解决方案 (solution)</label>
+                        <textarea id="expEditSolution" rows="2" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">根因分析 (root_cause)</label>
+                        <textarea id="expEditRootCause" rows="2" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;font-size:13px;resize:vertical;font-family:inherit;"></textarea>
+                    </div>
+                    <div style="display:flex;gap:14px;">
+                        <div style="flex:1;">
+                            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">技能类型 (skill_type)</label>
+                            <input id="expEditSkillType" type="text" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;font-size:13px;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">分类 (category)</label>
+                            <input id="expEditCategory" type="text" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;font-size:13px;">
+                        </div>
+                        <div style="flex:0 0 100px;">
+                            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">严重度</label>
+                            <select id="expEditSeverity" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;font-size:13px;">
+                                <option value="">-</option>
+                                <option value="low">低</option>
+                                <option value="medium">中</option>
+                                <option value="high">高</option>
+                                <option value="critical">严重</option>
+                            </select>
+                        </div>
+                        <div style="flex:0 0 100px;">
+                            <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">可信度</label>
+                            <input id="expEditConfidence" type="number" min="0" max="1" step="0.1" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;font-size:13px;">
+                        </div>
+                    </div>
+                    <!-- 新建模式下的经验类型选择 -->
+                    <div id="expEditTypeRow" style="display:none;margin-top:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">经验类型</label>
+                        <select id="expEditTypeSelect" style="width:200px;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:8px 10px;font-size:13px;">
+                            <option value="positive">✅ 正面经验</option>
+                            <option value="negative">❌ 负面经验</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="task-edit-footer">
+                    <button class="btn-secondary" onclick="closeExpEditModal()" style="padding:8px 16px;">取消</button>
+                <button class="btn-primary" onclick="saveFixExperience()" style="padding:8px 20px;" id="expEditSaveBtn">💾 保存</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 吸收经验 Modal -->
+        <div id="absorbExpOverlay" class="task-edit-overlay" onclick="if(event.target===this)closeAbsorbModal()">
+            <div class="task-edit-modal" style="max-width:560px;">
+                <div class="task-edit-header">
+                    <h3>🔗 吸收远程经验</h3>
+                    <button onclick="closeAbsorbModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+                </div>
+                <div class="task-edit-body">
+                    <div style="margin-bottom:16px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-xs);border-left:3px solid var(--purple);">
+                        <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">从另一个 AgentFlow 实例的 Dashboard 地址拉取经验数据，并导入到本地经验库。<br>💡 自动<b style="color:var(--accent);">按描述去重</b>，相同经验不会重复导入。<br>远程地址格式示例：<code style="color:var(--accent);">http://192.168.1.100:9100</code> 或 <code style="color:var(--accent);">localhost:9100</code></div>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">远程 MCP Dashboard 地址 <span style='color:var(--red);'>*</span></label>
+                        <input id="absorbAddr" type="text" placeholder="如 http://192.168.1.100:9100" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 12px;font-size:13px;font-family:monospace;">
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:600;">吸收类型</label>
+                        <div style="display:flex;gap:12px;">
+                            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--text-secondary);">
+                                <input type="checkbox" id="absorbTypePositive" checked style="accent-color:var(--green);"> ✅ 正面经验
+                            </label>
+                            <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:var(--text-secondary);">
+                                <input type="checkbox" id="absorbTypeNegative" checked style="accent-color:var(--red);"> ❌ 负面经验
+                            </label>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">关键词过滤（可选）</label>
+                        <input id="absorbKeyword" type="text" placeholder="仅吸收包含此关键词的经验（留空=全部吸收）" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 12px;font-size:13px;">
+                    </div>
+                    <div id="absorbResult" style="display:none;margin-top:12px;"></div>
+                </div>
+                <div class="task-edit-footer">
+                    <button class="btn-secondary" onclick="closeAbsorbModal()" style="padding:8px 16px;">取消</button>
+                    <button class="btn-primary" id="absorbSubmitBtn" onclick="submitAbsorbExperience()" style="padding:8px 20px;background:var(--purple);">🔗 开始吸收</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Skills View ========== -->
+    <div class="view" id="view-skills">
+        <!-- 顶部统计 + 操作栏 -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+            <div style="display:flex;align-items:center;gap:16px;">
+                <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);margin:0;">🧬 Skill 管理</h2>
+                <span style="font-size:12px;color:var(--text-muted);" id="skillViewCount">共 0 个 Skill</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <!-- 自动进化开关 -->
+                <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-xs);" title="控制是否允许进化引擎自动修改/生成 Skill DNA">
+                    <span style="font-size:12px;color:var(--text-muted);">🤖 自动进化</span>
+                    <label class="toggle-switch" style="position:relative;display:inline-block;width:36px;height:20px;">
+                        <input type="checkbox" id="skillAutoEvoToggle" onchange="toggleSkillAutoEvolution()" style="opacity:0;width:0;height:0;">
+                        <span class="toggle-slider" style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--text-dimmed);border-radius:20px;transition:0.3s;"></span>
+                    </label>
+                </div>
+                <input type="text" id="skillSearchInput" placeholder="🔍 搜索 Skill..." style="padding:6px 12px;font-size:12px;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);width:180px;" oninput="filterSkillCards()">
+                <button class="btn-primary" onclick="openAbsorbSkill()" style="font-size:12px;padding:6px 16px;background:var(--purple);">🔗 吸收 Skill</button>
+                <button class="btn-primary" onclick="openSkillForm('create')" style="font-size:12px;padding:6px 16px;">+ 新建 Skill</button>
+            </div>
+        </div>
+
+        <!-- Skill 卡片列表 -->
+        <div id="skillViewBody" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px;">
+            <div style="text-align:center;color:var(--text-dimmed);padding:60px;grid-column:1/-1;">加载中...</div>
+        </div>
+
+        <!-- 审核结果面板 -->
+        <div id="skillAuditOverlay" class="task-edit-overlay" onclick="if(event.target===this)closeSkillAudit()">
+            <div class="task-edit-modal" style="max-width:680px;">
+                <div class="task-edit-header">
+                    <h3 id="skillAuditTitle">🔍 Skill 质量审核</h3>
+                    <button onclick="closeSkillAudit()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+                </div>
+                <div class="task-edit-body" id="skillAuditBody" style="max-height:65vh;overflow-y:auto;">
+                    <div style="text-align:center;padding:40px;color:var(--text-dimmed);">加载中...</div>
+                </div>
+                <div class="task-edit-footer">
+                    <button class="btn-secondary" onclick="closeSkillAudit()" style="padding:8px 16px;">关闭</button>
+                    <button class="btn-primary" id="skillAuditFixBtn" onclick="auditSkillAutoFix()" style="padding:8px 16px;background:var(--orange);display:none;">🔧 自动修复</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 吸收 Skill Modal -->
+        <div id="absorbSkillOverlay" class="task-edit-overlay" onclick="if(event.target===this)closeAbsorbSkillModal()">
+            <div class="task-edit-modal" style="max-width:560px;">
+                <div class="task-edit-header">
+                    <h3>🔗 吸收远程 Skill</h3>
+                    <button onclick="closeAbsorbSkillModal()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;">✕</button>
+                </div>
+                <div class="task-edit-body">
+                    <div style="margin-bottom:16px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-xs);border-left:3px solid var(--purple);">
+                        <div style="font-size:12px;color:var(--text-muted);line-height:1.6;">从另一个 AgentFlow 实例的 Dashboard 地址拉取 Skill 数据（含 DNA），并导入到本地 Skill 库。<br>💡 同名 Skill 默认<b style="color:var(--accent);">智能合并</b>（仅追加新规则，不丢失已有内容）；勾选覆盖则全量替换。<br>远程地址格式示例：<code style="color:var(--accent);">http://192.168.1.100:9100</code> 或 <code style="color:var(--accent);">localhost:9100</code></div>
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">远程 MCP Dashboard 地址 <span style='color:var(--red);'>*</span></label>
+                        <input id="absorbSkillAddr" type="text" placeholder="如 http://192.168.1.100:9100" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 12px;font-size:13px;font-family:monospace;">
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;font-weight:600;">关键词过滤（可选）</label>
+                        <input id="absorbSkillKeyword" type="text" placeholder="仅吸收名称包含此关键词的 Skill（留空=全部吸收）" style="width:100%;background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:10px 12px;font-size:13px;">
+                    </div>
+                    <div style="margin-bottom:14px;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text-secondary);">
+                            <input type="checkbox" id="absorbSkillOverwrite" style="accent-color:var(--orange);"> ⚠️ 强制覆盖（不合并，直接替换本地同名 Skill）
+                        </label>
+                    </div>
+                    <div id="absorbSkillResult" style="display:none;margin-top:12px;"></div>
+                </div>
+                <div class="task-edit-footer">
+                    <button class="btn-secondary" onclick="closeAbsorbSkillModal()" style="padding:8px 16px;">取消</button>
+                    <button class="btn-primary" id="absorbSkillSubmitBtn" onclick="submitAbsorbSkill()" style="padding:8px 20px;background:var(--purple);">🔗 开始吸收</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Complaints View ========== -->
+    <div class="view" id="view-complaints">
+        <!-- 统计概览卡片 -->
+        <div class="grid" id="complaintStatsCards">
+            <div class="card">
+                <div class="card-title"><span class="icon">😤</span> 吐槽总数</div>
+                <div class="metric" id="complaint-total">-</div>
+                <div class="metric-sub" id="complaint-total-sub">加载中...</div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span class="icon">🔴</span> 严重阻塞</div>
+                <div class="metric red" id="complaint-blocking">-</div>
+                <div class="metric-sub">blocking 级别</div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span class="icon">🟡</span> 令人沮丧</div>
+                <div class="metric yellow" id="complaint-frustrating">-</div>
+                <div class="metric-sub">frustrating 级别</div>
+            </div>
+            <div class="card">
+                <div class="card-title"><span class="icon">🔵</span> 轻微不爽</div>
+                <div class="metric" id="complaint-minor">-</div>
+                <div class="metric-sub">minor 级别</div>
+            </div>
+        </div>
+
+        <!-- 分布统计 -->
+        <div class="two-col">
+            <div class="section">
+                <div class="section-title">📊 按类型分布</div>
+                <div class="card" id="complaintByType" style="min-height:120px;">
+                    <div style="text-align:center;color:var(--text-muted);padding:24px;">加载中...</div>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">🔥 高频热点 Top 5</div>
+                <div class="card" id="complaintHotSpots" style="min-height:120px;">
+                    <div style="text-align:center;color:var(--text-muted);padding:24px;">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 吐槽列表 -->
+        <div class="section">
+            <div class="section-title">
+                📜 吐槽记录
+                <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                    <select id="complaintTypeFilter" onchange="loadComplaintsList()" style="background:var(--bg-tertiary);color:var(--text-secondary);border:1px solid var(--border);border-radius:var(--radius-xs);padding:4px 8px;font-size:12px;">
+                        <option value="">全部类型</option>
+                        <option value="experience">🧠 经验质量</option>
+                        <option value="tool">🔧 工具问题</option>
+                        <option value="skill">📐 Skill规则</option>
+                        <option value="workflow">🔄 工作流程</option>
+                        <option value="context">📝 上下文不足</option>
+                        <option value="performance">⚡ 性能问题</option>
+                        <option value="other">❓ 其他</option>
+                    </select>
+                    <button class="btn-secondary" onclick="loadComplaintsList()" style="padding:4px 12px;font-size:12px;">🔄 刷新</button>
+                </div>
+            </div>
+            <div class="card">
+                <div id="complaintsList" style="display:flex;flex-direction:column;gap:10px;">
+                    <div style="text-align:center;color:var(--text-muted);padding:24px;">加载中...</div>
+                </div>
+                <div id="complaintsLoadMore" style="display:none;text-align:center;padding:12px;">
+                    <button class="btn-secondary" onclick="loadMoreComplaints()" style="padding:6px 20px;font-size:12px;">📥 加载更多</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Projects View ========== -->
+    <!-- ========== Tasks View ========== -->
+    <div class="view" id="view-tasks">
+        <div class="section">
+            <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <span>📋 任务队列 <span class="task-count-info" id="taskViewCountInfo"></span></span>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="taskViewSearch" placeholder="🔍 搜索任务..." oninput="filterTaskView()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;width:200px;">
+                </div>
+            </div>
+            <div class="goal-filter-row" id="taskViewGoalFilters" style="margin-top:12px;">
+                <span class="goal-filter-label">🎯 目标组：</span>
+                <button class="filter-btn active" data-goal-status="all" onclick="filterTaskViewGoals('all',this)">全部</button>
+                <button class="filter-btn" data-goal-status="active" onclick="filterTaskViewGoals('active',this)">▶ 进行中</button>
+                <button class="filter-btn" data-goal-status="pending" onclick="filterTaskViewGoals('pending',this)">⏸ 暂停</button>
+                <button class="filter-btn" data-goal-status="completed" onclick="filterTaskViewGoals('completed',this)">✅ 已完成</button>
+                <button class="filter-btn" data-goal-status="cancelled" onclick="filterTaskViewGoals('cancelled',this)">✕ 已取消</button>
+            </div>
+            <div class="task-modal-filters" id="taskViewFilters" style="margin-top:8px;">
+                <span class="goal-filter-label">📋 任务：</span>
+                <button class="filter-btn active" data-status="all" onclick="filterTaskViewStatus('all',this)">全部</button>
+                <button class="filter-btn" data-status="pending" onclick="filterTaskViewStatus('pending',this)">⏳ 待认领</button>
+                <button class="filter-btn" data-status="running" onclick="filterTaskViewStatus('running',this)">🔄 运行中</button>
+                <button class="filter-btn" data-status="completed" onclick="filterTaskViewStatus('completed',this)">✅ 已完成</button>
+                <button class="filter-btn" data-status="failed" onclick="filterTaskViewStatus('failed',this)">❌ 失败</button>
+                <button class="filter-btn" data-status="blocked" onclick="filterTaskViewStatus('blocked',this)">🚫 阻塞</button>
+                <button class="filter-btn" data-status="interrupted" onclick="filterTaskViewStatus('interrupted',this)">⚡ 中断</button>
+                <button class="filter-btn" data-status="review" onclick="filterTaskViewStatus('review',this)">🔍 审查中</button>
+            </div>
+            <div id="taskViewBody" style="margin-top:16px;overflow-x:auto;">
+                <div class="task-empty">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== Projects View ========== -->
+    <div class="view" id="view-projects">
+        <!-- 流程列表区域 -->
+        <div id="projectsListPanel">
+            <div class="section">
+                <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span>🗂️ 流程列表</span>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <select id="projectStatusFilter" onchange="loadProjects()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);font-size:13px;">
+                            <option value="">全部状态</option>
+                            <option value="draft">草稿</option>
+                            <option value="idea_review">创意审阅</option>
+                            <option value="macro_supplement">宏观补充</option>
+                            <option value="research">调研</option>
+                            <option value="mvp">MVP</option>
+                            <option value="p1">P1</option>
+                            <option value="p2">P2</option>
+                            <option value="completed">已完成</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="showCreateProjectModal()">+ 新建流程</button>
+                    </div>
+                </div>
+                <div id="projectsList" style="margin-top:16px;">
+                    <div class="skeleton" style="height:120px;border-radius:8px;margin-bottom:12px;"></div>
+                    <div class="skeleton" style="height:120px;border-radius:8px;margin-bottom:12px;"></div>
+                </div>
+            </div>
+        </div>
+        <!-- 流程详情区域（内嵌页面，默认隐藏） -->
+        <div id="projectDetailPanel" style="display:none;">
+            <div style="margin-bottom:16px;">
+                <button class="btn" onclick="closeProjectDetail()" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;">
+                    <span style="font-size:16px;">←</span> 返回流程列表
+                </button>
+            </div>
+            <div class="section">
+                <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span id="projectDetailTitle">流程详情</span>
+                </div>
+                <div id="projectDetailBody">
+                    <div class="skeleton" style="height:200px;border-radius:8px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    </div><!-- /.container -->
+
+
+
+    <!-- 新建流程模态框 -->
+    <div class="modal-overlay" id="createProjectModal" style="display:none;" onclick="if(event.target===this)closeCreateProject()">
+        <div class="modal" style="max-width:600px;width:95%;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>新建流程</h3>
+                <button class="modal-close" onclick="closeCreateProject()">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>流程标题 *</label>
+                    <input type="text" id="newProjectTitle" placeholder="输入流程标题" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);">
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>流程描述（初始想法）*</label>
+                    <textarea id="newProjectDesc" rows="4" placeholder="描述你的想法..." style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);resize:vertical;"></textarea>
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>优先级（1-10）</label>
+                    <input type="number" id="newProjectPriority" value="5" min="1" max="10" style="width:80px;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);">
+                </div>
+                <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+                    <button class="btn" onclick="closeCreateProject()">取消</button>
+                    <button class="btn btn-primary" onclick="submitCreateProject()">创建流程</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 审批操作对话框 -->
+    <div class="modal-overlay" id="approvalDialog" style="display:none;" onclick="if(event.target===this)closeApprovalDialog()">
+        <div class="modal" style="max-width:500px;width:95%;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="approvalDialogTitle">审批操作</h3>
+                <button class="modal-close" onclick="closeApprovalDialog()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="approvalProjectID">
+                <input type="hidden" id="approvalPhaseName">
+                <input type="hidden" id="approvalAction">
+                <div class="form-group">
+                    <label>审批意见 *</label>
+                    <textarea id="approvalComment" rows="4" placeholder="请填写审批意见..." style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);resize:vertical;font-family:inherit;"></textarea>
+                </div>
+                <div class="form-group" id="revisionItemsGroup" style="display:none;margin-top:12px;">
+                    <label>修订要点（每行一条）</label>
+                    <textarea id="revisionItems" rows="4" placeholder="1. 需要补充XXX&#10;2. 请修改YYY" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);resize:vertical;font-family:inherit;"></textarea>
+                </div>
+                <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+                    <button class="btn" onclick="closeApprovalDialog()">取消</button>
+                    <button class="btn btn-primary" id="approvalSubmitBtn" onclick="submitApproval()">提交</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 绑定条件对话框 -->
+    <div class="modal-overlay" id="bindConditionDialog" style="display:none;" onclick="if(event.target===this)closeBindConditionDialog()">
+        <div class="modal" style="max-width:450px;width:95%;" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3>绑定准出条件</h3>
+                <button class="modal-close" onclick="closeBindConditionDialog()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bindCondProjectID">
+                <input type="hidden" id="bindCondPhaseName">
+                <input type="hidden" id="bindCondIndex">
+                <div class="form-group">
+                    <label>任务 ID（可选）</label>
+                    <input type="text" id="bindCondTaskID" placeholder="输入任务 ID" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);">
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>目标 ID（可选）</label>
+                    <input type="text" id="bindCondGoalID" placeholder="输入目标 ID" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);">
+                </div>
+                <div style="margin-top:20px;display:flex;gap:8px;justify-content:flex-end;">
+                    <button class="btn" onclick="closeBindConditionDialog()">取消</button>
+                    <button class="btn btn-primary" onclick="submitBindCondition()">绑定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

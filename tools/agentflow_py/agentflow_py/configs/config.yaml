@@ -1,0 +1,264 @@
+## AgentFlow v2 配置文件
+## 所有配置项均可通过环境变量覆盖，格式: AF_{SECTION}_{KEY} (大写)
+
+server:
+  # MCP Server 传输模式:
+  #   stdio — 本地单客户端 (通过 command 配置)
+  #   sse   — HTTP多客户端共享 (通过 url 配置，多人可连同一个服务共同培养)
+  transport: sse
+  # HTTP/SSE 模式监听地址
+  sse_addr: ":8080"
+  # Dashboard HTTP 地址
+  dashboard_addr: ":8081"
+  # 日志级别: debug | info | warn | error
+  log_level: info
+
+redis:
+  # Redis 地址
+  addr: "127.0.0.1:6379"
+  # Redis 密码 (空则无密码)
+  password: ""
+  # Redis DB 编号
+  db: 0
+  # 连接池大小
+  pool_size: 20
+  # 最小空闲连接数
+  min_idle_conns: 5
+  # 连接超时 (秒)
+  dial_timeout: 5
+  # 读超时 (秒)
+  read_timeout: 3
+  # 写超时 (秒)
+  write_timeout: 3
+  # Key 前缀
+  key_prefix: "af:"
+
+sqlite:
+  # SQLite 数据库文件路径 (相对于 data_dir)
+  db_file: "agentflow_archive.db"
+  # 最大打开连接数
+  max_open_conns: 1
+  # WAL 模式
+  journal_mode: "WAL"
+  # busy_timeout (毫秒)
+  busy_timeout: 5000
+
+storage:
+  # 数据目录 (相对路径基于可执行文件所在目录，绝对路径直接使用)
+  data_dir: "./data"
+  # 归档策略
+  archive:
+    # 归档定时任务执行间隔 (分钟)
+    interval_minutes: 60
+    # 已完成任务归档阈值 (天)
+    task_archive_days: 7
+    # 高价值任务延长保留天数（difficulty>=high_value_difficulty 或 tokens>=high_value_tokens）
+    high_value_task_days: 30
+    # 高价值任务难度阈值
+    high_value_difficulty: 7
+    # 高价值任务 tokens 阈值
+    high_value_tokens: 10000
+    # Redis metrics 归档阈值 (天)
+    metrics_archive_days: 30
+    # Agent Archive 在 Redis 中保留的 Top N
+    archive_top_n: 10
+    # 活跃引用经验（query_count >= 阈值）延长保留天数
+    active_exp_query_days: 60
+    # 活跃引用阈值（query_count >= N 才延长）
+    active_exp_query_threshold: 1
+
+context:
+  # 上下文编译
+  compile:
+    # 默认 Token 预算
+    default_budget: 2000
+    # 最小 Token 预算
+    min_budget: 1200
+    # 最大 Token 预算
+    max_budget: 4000
+    # 截断警告阈值 (层级被截断超过此百分比时警告)
+    truncation_warn_pct: 50
+
+skill:
+  # Skill DNA 硬上限
+  limits:
+    max_rules: 20
+    max_anti_patterns: 15
+    max_best_practices: 15
+    # 规则蒸馏触发阈值
+    distillation_threshold: 15
+    # 规则淘汰阈值 (连续 N 个任务未引用)
+    stale_threshold: 10
+  # 跨 Skill 知识共享: 相同 pattern 出现在 N+ Skill 时提升为全局规则
+  cross_skill_promotion_threshold: 3
+  # Skill DNA 灰度发布配置
+  canary:
+    # 是否启用灰度发布
+    enabled: true
+    # 灰度流量比例（0-1）
+    ratio: 0.2
+    # 最少样本数后才做决策
+    min_samples: 5
+    # 成功率 >= 此值则全量发布
+    promote_threshold: 0.95
+    # 成功率 < 此值则自动回滚
+    rollback_threshold: 0.90
+
+evolution:
+  # 模式检测
+  pattern:
+    # 触发进化的最少证据数
+    min_evidence: 3
+    # 每日最大自动进化次数
+    daily_limit: 5
+  # 经验流
+  experience:
+    # Redis Stream MAXLEN (超出自动归档到 SQLite)
+    stream_maxlen: 500
+    # 反思质量过滤: 最小描述长度
+    min_description_length: 50
+    # 低信心阈值 (低于此值降权存储)
+    low_confidence_threshold: 0.3
+  # Agent Archive 评分
+  scoring:
+    # 早期任务数阈值
+    early_phase_threshold: 20
+    # 中期任务数阈值
+    mid_phase_threshold: 50
+    # 时间衰减因子 (每周)
+    time_decay_factor: 0.95
+  # 人类评估采样
+  human_calibration:
+    # 每 N 次进化后触发人类采样
+    every_n_evolutions: 7
+    # 每次采样任务数
+    sample_size: 3
+  # 进化日志 Redis Stream MAXLEN
+  evo_log_maxlen: 200
+
+fix_experience:
+  # 防死循环配置
+  anti_loop:
+    # 相似度警告阈值 (>=此值时给出警告)
+    similarity_warn_threshold: 0.6
+    # 相似度拦截阈值 (>=此值时拦截提交)
+    similarity_block_threshold: 0.85
+    # 同一方案最大尝试次数 (超过则强制拦截)
+    max_same_approach_attempts: 2
+  # 会话配置
+  session:
+    # 单个会话最大尝试次数
+    max_attempts_per_session: 20
+    # 会话闲置超时 (小时)，超时后标记 stale
+    stale_timeout_hours: 168
+    # 尝试成功时是否自动关闭会话
+    auto_close_on_success: false
+  # 归档配置
+  archive:
+    # resolved 会话归档天数
+    resolved_archive_days: 30
+    # abandoned 会话归档天数
+    abandoned_archive_days: 14
+    # open 会话标记 stale 天数
+    stale_timeout_days: 7
+  # 反馈配置
+  feedback:
+    # 最低衰减因子 (不会低于此值)
+    min_decay_factor: 0.1
+    # misleading 标签拉黑阈值 (累计达到此次数加入黑名单)
+    blacklist_misleading_threshold: 3
+    # 正向反馈(helpful)每次恢复的衰减因子
+    positive_feedback_recovery: 0.1
+    # 反馈详情 TTL (天)
+    feedback_detail_ttl_days: 90
+
+safety:
+  # 连续退化检测: 连续 N 次得分下降触发回滚
+  consecutive_degradation_threshold: 3
+  # 回归测试用例目录
+  test_cases_dir: "./data/test_cases"
+  # 进化分级: 影响度阈值 (高于此值需人工审批)
+  high_impact_threshold: 0.7
+
+lock:
+  # 分布式锁默认 TTL (秒)
+  default_ttl: 300
+  # 心跳间隔 (秒)
+  heartbeat_interval: 30
+  # 心跳超时 (秒)
+  heartbeat_timeout: 90
+
+watchdog:
+  # 启用任务看门狗 (僵尸任务检测 + 隐式心跳 + 中断恢复)
+  enabled: true
+  # 扫描间隔 (秒) — 定期扫描 running 队列检测僵尸任务
+  scan_interval: 30
+  # 软超时 (秒) — 超过此时间无心跳记录警告日志（预警，不中断任务）
+  soft_timeout: 1500
+  # 硬超时 (秒) — 超过此时间无心跳判定为僵尸任务并标记 interrupted
+  heartbeat_timeout: 1800
+  # 中断任务最大重试次数
+  max_retries: 3
+
+tools:
+  # 工具分层暴露
+  layer1_enabled: true
+  layer2_enabled: false
+  # Layer 2 动态加载: 当 Agent 调用 get_extended_tools 时启用
+  layer2_auto_enable: true
+
+# 语义搜索配置（可选，默认禁用）
+# ⭐ 强烈建议启用：能显著提升跨组件/跨文件的经验召回率
+# 启用后 query_fix_experience 将使用向量余弦相似度 + TF-IDF 融合评分 + pattern_tags 标签匹配
+semantic_search:
+  # 是否启用语义搜索（需配置 provider 和 api_key）
+  enabled: false
+  # 提供商: openai | ollama | disabled
+  # - openai: 使用 OpenAI text-embedding API（或兼容接口）
+  # - ollama: 使用本地 Ollama（需先运行 ollama pull nomic-embed-text）
+  # - disabled: 禁用，使用关键词匹配
+  provider: "disabled"
+  # OpenAI API Key（provider=openai 时必填）
+  api_key: ""
+  # API 基础 URL
+  # - OpenAI: https://api.openai.com（默认）
+  # - Ollama: http://localhost:11434
+  # - 兼容接口: 填写对应地址
+  base_url: "https://api.openai.com"
+  # 模型名称
+  # - OpenAI: text-embedding-3-small（1536维，推荐）或 text-embedding-3-large（3072维）
+  # - Ollama: nomic-embed-text（768维）或 mxbai-embed-large（1024维）
+  model: "text-embedding-3-small"
+  # 向量维度（需与模型匹配）
+  dimension: 1536
+  # 向量缓存 TTL（秒，默认 86400 = 1天）
+  cache_ttl: 86400
+  # API 请求超时（秒）
+  timeout: 10
+  # 语义分数权重（0~1）
+  # 最终分数 = semantic_weight * 语义分 + (1-semantic_weight) * 关键词分
+  semantic_weight: 0.6
+
+# Webhook 通知配置
+webhook:
+  # 是否启用 Webhook
+  enabled: true
+  # 发送失败最大重试次数
+  max_retries: 3
+  # 单次请求超时（秒）
+  timeout_sec: 10
+
+metrics:
+  # Token 成本告警
+  token_alerts:
+    # 日 Token 绿线
+    green_threshold: 60000
+    # 日 Token 黄线
+    yellow_threshold: 90000
+  # Redis 内存告警 (MB)
+  redis_memory:
+    warn_threshold: 80
+    critical_threshold: 100
+
+# 默认语言: zh（中文）或 en（英文）
+language: "zh"
